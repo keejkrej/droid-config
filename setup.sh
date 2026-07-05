@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Idempotent setup for this Factory Droid configuration:
 #   - Node.js (required by the ACP bridge)
-#   - Ollama + the GLM-5.2 cloud model (backs the `glm-executor` custom droid)
+#   - Ollama + the GLM-5.2 cloud model (backs the `glm` custom droid)
 #   - Verifies grok / cursor-agent CLIs are present (assumed pre-installed & logged in)
 #   - Installs the ACP bridge deps and links it into ~/.factory/mcp-bridges
 #   - Links custom droids into ~/.factory/droids
@@ -31,7 +31,7 @@ fi
 ok "node $(node --version), npm $(npm --version)"
 
 # ---------------------------------------------------------------------------
-# 2. Ollama + GLM cloud model (used by the glm-executor custom droid)
+# 2. Ollama + GLM cloud model (used by the glm custom droid)
 # ---------------------------------------------------------------------------
 log "Checking Ollama"
 if ! command -v ollama >/dev/null 2>&1; then

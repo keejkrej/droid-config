@@ -12,7 +12,7 @@ factory/
   droids/               custom droids (subagents), synced to ~/.factory/droids
     grok.md             relay subagent -> real Grok Build CLI via ACP
     cursor.md           relay subagent -> real Cursor Agent CLI via ACP
-    glm-executor.md      execution subagent using GLM-5.2 via Ollama Cloud
+    glm.md               execution subagent using GLM-5.2 via Ollama Cloud
     worker.md           general-purpose worker subagent
     scrutiny-feature-reviewer.md      (mission-mode only)
     user-testing-flow-validator.md    (mission-mode only)
@@ -86,7 +86,7 @@ droid exec --auto high "Use the Task tool with subagent_type 'cursor' to ..."
 ```
 
 or, in an interactive session, ask Droid to "run the subagent grok/cursor on
-<task>". The `glm-executor` and `worker` subagents work the same way via the
+<task>". The `glm` and `worker` subagents work the same way via the
 Task tool.
 
 ## Notes

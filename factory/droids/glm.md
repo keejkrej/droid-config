@@ -1,5 +1,5 @@
 ---
-name: glm-executor
+name: glm
 description: Executes well-scoped implementation subtasks (file edits, running commands, tests) delegated by the orchestrator, using GLM-5.2 via Ollama Cloud.
 model: custom:glm-5.2:cloud-0
 ---

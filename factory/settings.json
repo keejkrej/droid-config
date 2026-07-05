@@ -1,0 +1,15 @@
+{
+  "customModels": [
+    {
+      "model": "glm-5.2:cloud",
+      "id": "custom:glm-5.2:cloud-0",
+      "index": 0,
+      "baseUrl": "http://127.0.0.1:11434/v1",
+      "apiKey": "ollama",
+      "displayName": "glm-5.2:cloud",
+      "maxOutputTokens": 131072,
+      "noImageSupport": true,
+      "provider": "generic-chat-completion-api"
+    }
+  ]
+}

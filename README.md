@@ -16,6 +16,7 @@ factory/
     worker.md           general-purpose worker subagent
     scrutiny-feature-reviewer.md      (mission-mode only)
     user-testing-flow-validator.md    (mission-mode only)
+  AGENTS.md               personal subagent-delegation prefs, synced to ~/.factory/AGENTS.md
   mcp.json               template merged into ~/.factory/mcp.json
   settings.json          template merged into ~/.factory/settings.json (customModels)
 mcp-bridges/
@@ -59,8 +60,9 @@ Safe to re-run. It will:
    `ollama signin` once and re-run this script.
 3. Check for `grok` / `cursor-agent` on `PATH` (warns, doesn't install).
 4. `npm install` the ACP bridge dependencies.
-5. Symlink `mcp-bridges/acp-bridge` and `factory/droids/*.md` into
-   `~/.factory/`, backing up any pre-existing files it would replace.
+5. Symlink `mcp-bridges/acp-bridge`, `factory/droids/*.md`, and
+   `factory/AGENTS.md` into `~/.factory/`, backing up any pre-existing files
+   it would replace.
 6. Merge `factory/mcp.json` / `factory/settings.json` into the live
    `~/.factory/mcp.json` / `~/.factory/settings.json` -- only touching the
    keys this repo owns (`mcpServers.{vision-mcp,grok-acp,cursor-acp}` and the

@@ -5,6 +5,7 @@
 #   - Verifies grok / cursor-agent CLIs are present (assumed pre-installed & logged in)
 #   - Installs the ACP bridge deps and links it into ~/.factory/mcp-bridges
 #   - Links custom droids into ~/.factory/droids
+#   - Links factory/AGENTS.md into ~/.factory/AGENTS.md (personal subagent prefs)
 #   - Merges factory/mcp.json and factory/settings.json into the live Factory config
 set -euo pipefail
 
@@ -115,6 +116,10 @@ for f in "$REPO_DIR"/factory/droids/*.md; do
   link_path "$FACTORY_DIR/droids/$(basename "$f")" "$f"
 done
 ok "linked: $(cd "$REPO_DIR/factory/droids" && ls *.md | tr '\n' ' ')"
+
+log "Linking personal AGENTS.md into $FACTORY_DIR"
+link_path "$FACTORY_DIR/AGENTS.md" "$REPO_DIR/factory/AGENTS.md"
+ok "linked AGENTS.md"
 
 # ---------------------------------------------------------------------------
 # 6. Merge mcp.json / settings.json (non-destructive: only touches the keys

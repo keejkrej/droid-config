@@ -10,9 +10,8 @@ agent CLIs (Grok Build, Cursor Agent) speaking the
 ```
 factory/
   droids/               custom droids (subagents), synced to ~/.factory/droids
-    grok.md             relay subagent -> real Grok Build CLI (grok-composer-2.5-fast) via ACP
-    cursor.md           relay subagent -> real Cursor Agent CLI (composer-2.5-fast) via ACP
-    cursor-deep.md      relay subagent -> Cursor Agent CLI (claude-fable-5-high) for difficult tasks
+    fast.md             fast subagent: grok (grok-composer-2.5-fast) with cursor fallback (composer-2.5-fast)
+    deep.md             deep subagent: cursor-agent (claude-fable-5-high) for difficult tasks
     worker.md           general-purpose worker subagent
     scrutiny-feature-reviewer.md      (mission-mode only)
     user-testing-flow-validator.md    (mission-mode only)
@@ -24,6 +23,7 @@ mcp-bridges/
 scripts/
   merge-json.mjs          non-destructive JSON merge helper used by setup.sh
   grok-usage.sh           check whether grok still has usage quota remaining
+  cursor-usage.sh          check whether cursor-agent still has usage quota remaining
 setup.sh                  installer/linker, safe to re-run
 ```
 
@@ -37,12 +37,12 @@ be registered as an MCP server directly.
 `mcp-bridges/acp-bridge` is a small MCP stdio server that spawns an ACP agent
 subprocess, drives the ACP handshake (`initialize` -> `authenticate` ->
 `session/new` -> `session/prompt`), and exposes the result as a single MCP
-tool (`prompt`). The `grok`, `cursor`, and `cursor-deep` custom droids are
-thin relays restricted to only that tool, so calling them via the Task tool
-runs the actual external grok / cursor-agent process and returns its real
-response. Each MCP server passes a `--model` flag to its underlying CLI so the
-specific model (grok-composer-2.5-fast, composer-2.5-fast, or
-claude-fable-5-high) is pinned at the ACP-bridge level.
+tool (`prompt`). The `fast` and `deep` custom droids are thin relays
+restricted to only that tool, so calling them via the Task tool runs the
+actual external grok / cursor-agent process and returns its real response.
+Each MCP server passes a `--model` flag to its underlying CLI so the specific
+model (grok-composer-2.5-fast, composer-2.5-fast, or claude-fable-5-high) is
+pinned at the ACP-bridge level.
 
 ## Prerequisites
 
@@ -74,8 +74,9 @@ Safe to re-run. It will:
    the `custom:glm-5.2:cloud-0` entry in `customModels`, and
    `sessionDefaultSettings.model`). Everything else in those files is left
    untouched.
-7. Install the `grok-usage.sh` helper into `~/.factory/bin/`.
-8. Remove any stale `glm.md` droid symlink from older setups.
+7. Install the `grok-usage.sh` and `cursor-usage.sh` helpers into `~/.factory/bin/`.
+8. Remove any stale droid symlinks (`glm.md`, `grok.md`, `cursor.md`,
+   `cursor-deep.md`) from older setups.
 9. Runs `droid mcp list` to confirm the servers connect.
 
 If `grok` / `cursor-agent` aren't installed yet:
@@ -91,38 +92,47 @@ login`) before re-running `./setup.sh`.
 ## Usage
 
 ```
-droid exec --auto high "Use the Task tool with subagent_type 'grok' to ..."
-droid exec --auto high "Use the Task tool with subagent_type 'cursor' to ..."
-droid exec --auto high "Use the Task tool with subagent_type 'cursor-deep' to ..."
+droid exec --auto high "Use the Task tool with subagent_type 'fast' to ..."
+droid exec --auto high "Use the Task tool with subagent_type 'deep' to ..."
 ```
 
-or, in an interactive session, ask Droid to "run the subagent grok/cursor/cursor-deep
-on <task>". The `worker` subagent works the same way via the Task tool.
+or, in an interactive session, ask Droid to "run the subagent fast/deep on
+<task>". The `worker` subagent works the same way via the Task tool.
 
 The main agent runs on GLM-5.2 by default (configured in `settings.json` via
 `sessionDefaultSettings.model`). Delegate to subagents for independent
 opinions, parallel work, or different model strengths:
 
-- **grok** (grok-composer-2.5-fast) — default for delegated work; fast and capable.
-- **cursor** (composer-2.5-fast) — fallback when grok quota is exhausted.
-- **cursor-deep** (claude-fable-5-high) — for difficult, high-stakes tasks.
+- **fast** (grok-composer-2.5-fast with cursor composer-2.5-fast fallback) —
+  default for delegated work. The `fast` droid tries grok first and
+  automatically falls back to cursor if grok hits a usage limit. Use liberally
+  for research, codebase exploration, search, verification passes, and code
+  review — subagents are a context-management primitive that keeps the main
+  agent's context clean.
+- **deep** (claude-fable-5-high) — for difficult, high-stakes tasks where
+  maximum reasoning depth is needed.
 - **worker** — general-purpose exploration/Q&A/research.
 
-### Checking grok quota
+For tasks with **independent, disjoint parts** (e.g. explore auth + DB + API
+simultaneously), issue multiple `fast` Task calls in the same response — each
+subagent owns a different scope (map-reduce pattern). Do not fan-out the same
+task to N agents to pick the best (best-of-N is wasteful and not recommended
+for production).
 
-Grok Build has subscription usage limits (SuperGrok / X Premium Plus). The
-recommended workflow is to just try grok, and if its response contains a
-usage-limit error, re-delegate the task to `cursor` or `cursor-deep`.
+### Checking provider quota
 
-`scripts/grok-usage.sh` is a **manual diagnostic** that sends a trivial prompt
-to grok and reports whether a usage-limit error appears. Run it occasionally or
-when you suspect limits are the problem, not automatically before every
-delegation (a point-in-time "OK" does not guarantee grok won't run out
-mid-task, and xAI does not publish the exact reset window).
+Both Grok Build and Cursor Agent have subscription usage limits. The `fast`
+droid handles grok-to-cursor fallback internally, so no pre-check is needed.
+For manual diagnostics:
 
 ```bash
-bash scripts/grok-usage.sh   # exit 0 = OK, exit 1 = out of quota, exit 2 = other error
+bash scripts/grok-usage.sh      # exit 0 = OK, exit 1 = out of quota, exit 2 = other error
+bash scripts/cursor-usage.sh     # same exit codes
 ```
+
+These are point-in-time checks and do not guarantee the provider won't run out
+mid-task. Neither xAI nor Cursor publishes exact reset windows. Run them
+occasionally or when you suspect limits are the problem.
 
 ## Notes
 

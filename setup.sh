@@ -7,7 +7,7 @@
 #   - Links custom droids into ~/.factory/droids
 #   - Links factory/AGENTS.md into ~/.factory/AGENTS.md (personal subagent prefs)
 #   - Merges factory/mcp.json and factory/settings.json into the live Factory config
-#   - Installs the grok-usage helper script
+#   - Installs the grok-usage and cursor-usage helper scripts
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -133,22 +133,25 @@ node "$REPO_DIR/scripts/merge-json.mjs" settings "$REPO_DIR/factory/settings.jso
 ok "config merged"
 
 # ---------------------------------------------------------------------------
-# 7. Install grok-usage helper
+# 7. Install usage helper scripts
 # ---------------------------------------------------------------------------
-log "Installing grok-usage helper"
+log "Installing usage helper scripts"
 link_path "$FACTORY_DIR/bin/grok-usage.sh" "$REPO_DIR/scripts/grok-usage.sh"
-ok "linked grok-usage.sh -> $FACTORY_DIR/bin/grok-usage.sh"
+link_path "$FACTORY_DIR/bin/cursor-usage.sh" "$REPO_DIR/scripts/cursor-usage.sh"
+ok "linked grok-usage.sh, cursor-usage.sh -> $FACTORY_DIR/bin/"
 
 # ---------------------------------------------------------------------------
-# 8. Remove stale glm droid symlink (from older setups)
+# 8. Remove stale droid symlinks (from older setups)
 # ---------------------------------------------------------------------------
-GLM_DROID="$FACTORY_DIR/droids/glm.md"
-if [ -L "$GLM_DROID" ] && [ "$(readlink -f "$GLM_DROID")" = "$REPO_DIR/factory/droids/glm.md" ]; then
-  rm "$GLM_DROID"
-  ok "removed stale glm.md droid symlink"
-elif [ -e "$GLM_DROID" ]; then
-  warn "found $GLM_DROID but it doesn't point to this repo; leaving it in place"
-fi
+for stale in glm.md grok.md cursor.md cursor-deep.md; do
+  STALE="$FACTORY_DIR/droids/$stale"
+  if [ -L "$STALE" ] && [ "$(readlink -f "$STALE")" = "$REPO_DIR/factory/droids/$stale" ]; then
+    rm "$STALE"
+    ok "removed stale $stale droid symlink"
+  elif [ -e "$STALE" ]; then
+    warn "found $STALE but it doesn't point to this repo; leaving it in place"
+  fi
+done
 
 # ---------------------------------------------------------------------------
 # 9. Verify
@@ -161,7 +164,7 @@ else
 fi
 
 log "Done."
-echo "Try:  droid exec --auto high \"Use the Task tool with subagent_type 'grok' to say hi\""
-echo "Try:  droid exec --auto high \"Use the Task tool with subagent_type 'cursor' to say hi\""
-echo "Try:  droid exec --auto high \"Use the Task tool with subagent_type 'cursor-deep' to say hi\""
-echo "Check grok quota:  bash scripts/grok-usage.sh"
+echo "Try:  droid exec --auto high \"Use the Task tool with subagent_type 'fast' to say hi\""
+echo "Try:  droid exec --auto high \"Use the Task tool with subagent_type 'deep' to say hi\""
+echo "Check grok quota:   bash scripts/grok-usage.sh"
+echo "Check cursor quota:  bash scripts/cursor-usage.sh"

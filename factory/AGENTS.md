@@ -30,15 +30,17 @@ The ONLY times you stay inline:
 **When in doubt, delegate.** If you catch yourself reading file after file or
 scrolling through long output, you have already failed — delegate immediately.
 
-### Target work split: ~50/50
+### Goal: maximize parallelization
 
-Aim to split the work **roughly evenly** between you (the main agent) and
-subagents. If you are doing most of the reading, searching, exploring, and
-verifying yourself, you are hogging work that belongs in a subagent. A healthy
-session looks like: you plan and edit, subagents gather, search, verify, and
-review. If your own tool-call count is climbing well past the subagents' for a
-non-trivial task, rebalance by delegating the next chunk of investigation or
-verification to `fast`.
+The goal is not a fixed 50/50 split — it is **maximum parallelization**. At any
+point in a non-trivial task, ask: "How many independent threads can I run at
+once?" If there are 3 disjoint areas to investigate, fire 3 `fast` Task calls
+in the same response. If exploration and verification can overlap, start both
+now. The main agent's job is to **fan out work, then merge results** — not to
+serialize it by doing each piece inline. A healthy session has subagents
+running in parallel while you plan the next step or talk to the user. If only
+one thing is happening at a time and it is you doing it, you are serializing
+work that should be parallel.
 
 ## Main Agent Model
 

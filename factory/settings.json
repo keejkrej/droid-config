@@ -11,5 +11,8 @@
       "noImageSupport": true,
       "provider": "generic-chat-completion-api"
     }
-  ]
+  ],
+  "sessionDefaultSettings": {
+    "model": "custom:glm-5.2:cloud-0"
+  }
 }

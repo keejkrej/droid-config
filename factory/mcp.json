@@ -14,7 +14,7 @@
       "args": ["$HOME/.factory/mcp-bridges/acp-bridge/index.mjs"],
       "env": {
         "ACP_COMMAND": "grok",
-        "ACP_ARGS": "[\"agent\",\"stdio\"]",
+        "ACP_ARGS": "[\"agent\",\"--model\",\"grok-composer-2.5-fast\",\"stdio\"]",
         "ACP_LABEL": "Grok Build (xAI)",
         "ACP_SERVER_NAME": "grok-acp"
       },
@@ -26,10 +26,23 @@
       "args": ["$HOME/.factory/mcp-bridges/acp-bridge/index.mjs"],
       "env": {
         "ACP_COMMAND": "cursor-agent",
-        "ACP_ARGS": "[\"acp\"]",
+        "ACP_ARGS": "[\"acp\",\"--model\",\"composer-2.5-fast\"]",
         "ACP_AUTH_METHOD": "cursor_login",
         "ACP_LABEL": "Cursor Agent",
         "ACP_SERVER_NAME": "cursor-acp"
+      },
+      "timeoutMs": 300000
+    },
+    "cursor-deep-acp": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["$HOME/.factory/mcp-bridges/acp-bridge/index.mjs"],
+      "env": {
+        "ACP_COMMAND": "cursor-agent",
+        "ACP_ARGS": "[\"acp\",\"--model\",\"claude-fable-5-high\"]",
+        "ACP_AUTH_METHOD": "cursor_login",
+        "ACP_LABEL": "Cursor Agent (Fable 5 High)",
+        "ACP_SERVER_NAME": "cursor-deep-acp"
       },
       "timeoutMs": 300000
     }

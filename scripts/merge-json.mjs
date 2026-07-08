@@ -46,6 +46,14 @@ if (mode === "mcp") {
     if (idx >= 0) target.customModels[idx] = model;
     else target.customModels.push(model);
   }
+  // Merge sessionDefaultSettings -- only set keys present in the template,
+  // so user-tuned settings in the live file are preserved for keys we don't own.
+  if (template.sessionDefaultSettings) {
+    target.sessionDefaultSettings = target.sessionDefaultSettings || {};
+    for (const [k, v] of Object.entries(template.sessionDefaultSettings)) {
+      target.sessionDefaultSettings[k] = v;
+    }
+  }
 } else {
   console.error(`Unknown mode "${mode}". Expected "mcp" or "settings".`);
   process.exit(1);

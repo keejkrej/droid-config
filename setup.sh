@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # Idempotent setup for this Factory Droid configuration:
 #   - Node.js (required by the ACP bridge)
-#   - Ollama + the GLM-5.2 cloud model (backs the `glm` custom droid)
+#   - Ollama + the GLM-5.2 cloud model (default main agent model)
 #   - Verifies grok / cursor-agent CLIs are present (assumed pre-installed & logged in)
 #   - Installs the ACP bridge deps and links it into ~/.factory/mcp-bridges
 #   - Links custom droids into ~/.factory/droids
 #   - Links factory/AGENTS.md into ~/.factory/AGENTS.md (personal subagent prefs)
 #   - Merges factory/mcp.json and factory/settings.json into the live Factory config
+#   - Installs the grok-usage helper script
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,7 +33,7 @@ fi
 ok "node $(node --version), npm $(npm --version)"
 
 # ---------------------------------------------------------------------------
-# 2. Ollama + GLM cloud model (used by the glm custom droid)
+# 2. Ollama + GLM cloud model (default main agent model, set via settings.json)
 # ---------------------------------------------------------------------------
 log "Checking Ollama"
 if ! command -v ollama >/dev/null 2>&1; then
@@ -123,8 +124,8 @@ ok "linked AGENTS.md"
 
 # ---------------------------------------------------------------------------
 # 6. Merge mcp.json / settings.json (non-destructive: only touches the keys
-#    this repo owns -- mcpServers.{vision-mcp,grok-acp,cursor-acp} and the
-#    glm-5.2 entry in customModels)
+#    this repo owns -- mcpServers.{vision-mcp,grok-acp,cursor-acp,cursor-deep-acp},
+#    the glm-5.2 entry in customModels, and sessionDefaultSettings.model)
 # ---------------------------------------------------------------------------
 log "Merging mcp.json and settings.json into $FACTORY_DIR"
 node "$REPO_DIR/scripts/merge-json.mjs" mcp "$REPO_DIR/factory/mcp.json" "$FACTORY_DIR/mcp.json"
@@ -132,7 +133,25 @@ node "$REPO_DIR/scripts/merge-json.mjs" settings "$REPO_DIR/factory/settings.jso
 ok "config merged"
 
 # ---------------------------------------------------------------------------
-# 7. Verify
+# 7. Install grok-usage helper
+# ---------------------------------------------------------------------------
+log "Installing grok-usage helper"
+link_path "$FACTORY_DIR/bin/grok-usage.sh" "$REPO_DIR/scripts/grok-usage.sh"
+ok "linked grok-usage.sh -> $FACTORY_DIR/bin/grok-usage.sh"
+
+# ---------------------------------------------------------------------------
+# 8. Remove stale glm droid symlink (from older setups)
+# ---------------------------------------------------------------------------
+GLM_DROID="$FACTORY_DIR/droids/glm.md"
+if [ -L "$GLM_DROID" ] && [ "$(readlink -f "$GLM_DROID")" = "$REPO_DIR/factory/droids/glm.md" ]; then
+  rm "$GLM_DROID"
+  ok "removed stale glm.md droid symlink"
+elif [ -e "$GLM_DROID" ]; then
+  warn "found $GLM_DROID but it doesn't point to this repo; leaving it in place"
+fi
+
+# ---------------------------------------------------------------------------
+# 9. Verify
 # ---------------------------------------------------------------------------
 log "Verifying MCP servers"
 if command -v droid >/dev/null 2>&1; then
@@ -144,3 +163,5 @@ fi
 log "Done."
 echo "Try:  droid exec --auto high \"Use the Task tool with subagent_type 'grok' to say hi\""
 echo "Try:  droid exec --auto high \"Use the Task tool with subagent_type 'cursor' to say hi\""
+echo "Try:  droid exec --auto high \"Use the Task tool with subagent_type 'cursor-deep' to say hi\""
+echo "Check grok quota:  bash scripts/grok-usage.sh"

@@ -12,9 +12,6 @@ factory/
   droids/               custom droids (subagents), synced to ~/.factory/droids
     fast.md             fast subagent: grok (grok-composer-2.5-fast) with cursor fallback (composer-2.5-fast)
     deep.md             deep subagent: cursor-agent (claude-fable-5-high) for difficult tasks
-    worker.md           general-purpose worker subagent
-    scrutiny-feature-reviewer.md      (mission-mode only)
-    user-testing-flow-validator.md    (mission-mode only)
   AGENTS.md               personal subagent-delegation prefs, synced to ~/.factory/AGENTS.md
   mcp.json               template merged into ~/.factory/mcp.json
   settings.json          template merged into ~/.factory/settings.json (customModels + default model)
@@ -65,9 +62,9 @@ Safe to re-run. It will:
    `ollama pull` fails, run `ollama signin` once and re-run this script.
 3. Check for `grok` / `cursor-agent` on `PATH` (warns, doesn't install).
 4. `npm install` the ACP bridge dependencies.
-5. Symlink `mcp-bridges/acp-bridge`, `factory/droids/*.md`, and
-   `factory/AGENTS.md` into `~/.factory/`, backing up any pre-existing files
-   it would replace.
+5. Symlink `mcp-bridges/acp-bridge`, `factory/droids/fast.md`,
+   `factory/droids/deep.md`, and `factory/AGENTS.md` into `~/.factory/`,
+   backing up any pre-existing files they would replace.
 6. Merge `factory/mcp.json` / `factory/settings.json` into the live
    `~/.factory/mcp.json` / `~/.factory/settings.json` -- only touching the
    keys this repo owns (`mcpServers.{vision-mcp,grok-acp,cursor-acp,cursor-deep-acp}`,
@@ -75,8 +72,10 @@ Safe to re-run. It will:
    `sessionDefaultSettings.model`). Everything else in those files is left
    untouched.
 7. Install the `grok-usage.sh` and `cursor-usage.sh` helpers into `~/.factory/bin/`.
-8. Remove any stale droid symlinks (`glm.md`, `grok.md`, `cursor.md`,
-   `cursor-deep.md`) from older setups.
+8. Remove every droid from `~/.factory/droids` other than `fast.md` and
+   `deep.md` (cleans up stale files from older setups, including `worker.md`,
+   `scrutiny-feature-reviewer.md`, `user-testing-flow-validator.md`,
+   `glm.md`, `grok.md`, `cursor.md`, `cursor-deep.md`).
 9. Runs `droid mcp list` to confirm the servers connect.
 
 If `grok` / `cursor-agent` aren't installed yet:
@@ -97,11 +96,13 @@ droid exec --auto high "Use the Task tool with subagent_type 'deep' to ..."
 ```
 
 or, in an interactive session, ask Droid to "run the subagent fast/deep on
-<task>". The `worker` subagent works the same way via the Task tool.
+<task>".
 
 The main agent runs on GLM-5.2 by default (configured in `settings.json` via
-`sessionDefaultSettings.model`). Delegate to subagents for independent
-opinions, parallel work, or different model strengths:
+`sessionDefaultSettings.model`). It should **eagerly delegate** to subagents
+for independent opinions, parallel work, exploration, search, verification, and
+different model strengths. Only `fast` and `deep` are provided; `worker` and
+any other subagent listed by the Task tool are leftovers and must not be used.
 
 - **fast** (grok-composer-2.5-fast with cursor composer-2.5-fast fallback) —
   default for delegated work. The `fast` droid tries grok first and
@@ -111,7 +112,6 @@ opinions, parallel work, or different model strengths:
   agent's context clean.
 - **deep** (claude-fable-5-high) — for difficult, high-stakes tasks where
   maximum reasoning depth is needed.
-- **worker** — general-purpose exploration/Q&A/research.
 
 For tasks with **independent, disjoint parts** (e.g. explore auth + DB + API
 simultaneously), issue multiple `fast` Task calls in the same response — each

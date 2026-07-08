@@ -4,10 +4,10 @@
 #   - Ollama + the GLM-5.2 cloud model (default main agent model)
 #   - Verifies grok / cursor-agent CLIs are present (assumed pre-installed & logged in)
 #   - Installs the ACP bridge deps and links it into ~/.factory/mcp-bridges
-#   - Links custom droids into ~/.factory/droids
+#   - Links custom droids (fast, deep) into ~/.factory/droids
 #   - Links factory/AGENTS.md into ~/.factory/AGENTS.md (personal subagent prefs)
 #   - Merges factory/mcp.json and factory/settings.json into the live Factory config
-#   - Installs the grok-usage and cursor-usage helper scripts
+#   - Links the grok-usage and cursor-usage helper scripts into ~/.factory/bin
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -112,11 +112,11 @@ log "Linking mcp-bridges/acp-bridge into $FACTORY_DIR"
 link_path "$FACTORY_DIR/mcp-bridges/acp-bridge" "$REPO_DIR/mcp-bridges/acp-bridge"
 ok "linked acp-bridge"
 
-log "Linking custom droids into $FACTORY_DIR/droids"
-for f in "$REPO_DIR"/factory/droids/*.md; do
-  link_path "$FACTORY_DIR/droids/$(basename "$f")" "$f"
+log "Linking custom droids (fast, deep) into $FACTORY_DIR/droids"
+for f in fast.md deep.md; do
+  link_path "$FACTORY_DIR/droids/$f" "$REPO_DIR/factory/droids/$f"
 done
-ok "linked: $(cd "$REPO_DIR/factory/droids" && ls *.md | tr '\n' ' ')"
+ok "linked: fast.md deep.md"
 
 log "Linking personal AGENTS.md into $FACTORY_DIR"
 link_path "$FACTORY_DIR/AGENTS.md" "$REPO_DIR/factory/AGENTS.md"
@@ -141,16 +141,18 @@ link_path "$FACTORY_DIR/bin/cursor-usage.sh" "$REPO_DIR/scripts/cursor-usage.sh"
 ok "linked grok-usage.sh, cursor-usage.sh -> $FACTORY_DIR/bin/"
 
 # ---------------------------------------------------------------------------
-# 8. Remove stale droid symlinks (from older setups)
+# 8. Remove all droid files we don't provide (keep only fast.md / deep.md)
 # ---------------------------------------------------------------------------
-for stale in glm.md grok.md cursor.md cursor-deep.md; do
-  STALE="$FACTORY_DIR/droids/$stale"
-  if [ -L "$STALE" ] && [ "$(readlink -f "$STALE")" = "$REPO_DIR/factory/droids/$stale" ]; then
-    rm "$STALE"
-    ok "removed stale $stale droid symlink"
-  elif [ -e "$STALE" ]; then
-    warn "found $STALE but it doesn't point to this repo; leaving it in place"
-  fi
+log "Pruning non-provided droids from $FACTORY_DIR/droids"
+for d in "$FACTORY_DIR"/droids/*.md; do
+  [ -L "$d" ] || [ -e "$d" ] || continue
+  case "$(basename "$d")" in
+    fast.md|deep.md) ;;                       # keep
+    *)
+      rm "$d"
+      ok "removed $(basename "$d")"
+      ;;
+  esac
 done
 
 # ---------------------------------------------------------------------------

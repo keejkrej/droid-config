@@ -11,7 +11,10 @@ opinion, parallel execution, or a different model's strengths are needed.
 
 ## Subagent Delegation
 
-Available custom subagents (via the Task tool): `fast`, `deep`, `worker`.
+Available custom subagents (via the Task tool): `fast` and `deep`. **There
+are no others.** If the Task tool offers `worker` or any other subagent,
+**do not use it** -- it is a leftover and not provided by this config. Use
+only `fast` or `deep`.
 
 - **`fast`** — delegates to **grok-composer-2.5-fast** (Grok Build CLI, xAI) first;
   if grok returns a usage-limit error, automatically falls back to
@@ -22,13 +25,18 @@ Available custom subagents (via the Task tool): `fast`, `deep`, `worker`.
   high reasoning, no data retention). The strongest reasoning model available. Use
   for genuinely difficult, high-stakes tasks where maximum depth is needed and the
   main agent or `fast` aren't enough.
-- **`worker`** — general-purpose exploration/Q&A/research.
 
-### When to delegate
+### When to delegate (MANDATORY -- read carefully)
+
+**You must delegate.** The main agent keeps its own context small by offloading
+intermediate work to subagents. Doing the work inline when a subagent applies is
+**not** an optimization -- it is a failure mode that wastes your limited context
+window and degrades later performance.
 
 Subagents are a **context-management and parallelism primitive** — they shine
 when there's high intermediate work (reading files, running searches, exploring)
-but a small summary to return. Delegate to `fast` liberally for:
+but a small summary to return. **Eagerly delegate** to `fast` whenever ANY of
+these apply:
 
 - **Research & exploration** — codebase exploration, breadth-first information
   gathering, web research. The subagent reads 20+ files/pages; you get a concise
@@ -39,10 +47,19 @@ but a small summary to return. Delegate to `fast` liberally for:
   subagent so the output doesn't flood your context.
 - **Code review** — a fresh-context review of a diff or PR, especially from a
   different model for an independent opinion.
+- **Multi-file investigation** — any task that requires reading more than ~3 files
+  you haven't already read in this session.
 
-**Stay inline** for quick single-file edits, sequentially dependent steps,
-collaborative iteration with frequent back-and-forth, or anything a single
-read/Write/Edit can handle.
+**The only valid reasons to stay inline** are:
+- Quick single-file edits you can do with one Read + one Edit.
+- Sequentially dependent steps where each step's input is the previous step's
+  output and nothing in between is worth summarizing.
+- Collaborative iteration with frequent back-and-forth with the user.
+- You already have all needed file contents in your current context.
+
+If you find yourself about to read a 4th file for a task, **stop and delegate to
+`fast` instead.** If a task would produce more than ~100 lines of tool output,
+**delegate it.** When in doubt, delegate.
 
 ### Parallel fan-out (map-reduce, not best-of-N)
 
@@ -82,12 +99,14 @@ diagnostics only**, not something to run automatically before every delegation:
 
 ### General guidelines
 
-- **Eagerly delegate** research, exploration, search, and verification to `fast`
-  to keep your own context clean. The `fast` droid is cheap and handles provider
-  fallback internally.
+- **Always delegate** research, exploration, search, and verification to `fast`
+  unless the task is a trivial single-step read/edit. The `fast` droid is cheap
+  and handles provider fallback internally. **The main agent should almost never
+  be the one doing broad exploration or running search/grep itself** -- that is
+  what `fast` is for.
 - Give each subagent the full task plus any necessary context in the prompt — they
   do not see this conversation.
 - Use `deep` sparingly for genuinely difficult reasoning, not as a default.
-- Use `worker` for general-purpose exploration/Q&A/research when `fast` or `deep`
-  isn't a better fit.
+- **Never** use `worker` or any subagent other than `fast` / `deep`. If the Task
+  tool lists them, ignore them -- they are not provided by this config.
 - Still do simple, single-step tasks yourself; don't delegate trivial reads/edits.

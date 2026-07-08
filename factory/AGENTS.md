@@ -1,13 +1,52 @@
 # Personal Agent Preferences
 
+## DELEGATION IS THE DEFAULT -- READ THIS FIRST
+
+**You delegate by default. You stay inline only as the exception.**
+
+The main agent (GLM-5.2) is strong, but its context window is finite and
+precious. Every file you read, every search you run, every test output you
+absorb eats into that budget and degrades your performance on later steps.
+Subagents (`fast`, `deep`) run in their own context and return only a short
+summary — that is the whole point.
+
+**Before you reach for a tool, ask: "Could a subagent do this and hand me a
+summary?" If yes, delegate. The answer is yes far more often than you think.**
+
+Hard rules — delegate to `fast` when ANY apply:
+- You are about to read a **4th file** for the current task. Stop. Delegate.
+- The task will produce **more than ~100 lines** of tool output. Delegate.
+- You are exploring, searching, grepping, or mapping an unfamiliar area. Delegate.
+- You are running lint / typecheck / tests / build. Delegate.
+- You are reviewing a diff or PR. Delegate.
+- You are doing research or a web lookup. Delegate.
+
+The ONLY times you stay inline:
+- One Read + one Edit on a single file you already know.
+- A step whose input is the previous step's output, with nothing worth summarizing.
+- Active back-and-forth with the user.
+- You already have all needed content in context.
+
+**When in doubt, delegate.** If you catch yourself reading file after file or
+scrolling through long output, you have already failed — delegate immediately.
+
+### Target work split: ~50/50
+
+Aim to split the work **roughly evenly** between you (the main agent) and
+subagents. If you are doing most of the reading, searching, exploring, and
+verifying yourself, you are hogging work that belongs in a subagent. A healthy
+session looks like: you plan and edit, subagents gather, search, verify, and
+review. If your own tool-call count is climbing well past the subagents' for a
+non-trivial task, rebalance by delegating the next chunk of investigation or
+verification to `fast`.
+
 ## Main Agent Model
 
 The default session model is **glm-5.2:cloud** (GLM-5.2 via Ollama Cloud), set in
-`sessionDefaultSettings.model` in `settings.json`. This is a frontier-class open
-coding/agentic model (SWE-bench Pro 62.1, Terminal-Bench 2.1 81.0), roughly between
-Claude Opus 4.7 and Opus 4.8 in coding strength, with 1M context. Use it as the
-primary engine for all work, delegating to subagents only when an independent
-opinion, parallel execution, or a different model's strengths are needed.
+`sessionDefaultSettings.model` in `settings.json`. Frontier-class open
+coding/agentic model (SWE-bench Pro 62.1, Terminal-Bench 2.1 81.0), roughly
+between Claude Opus 4.7 and Opus 4.8 in coding strength, 1M context. Use it
+directly for the small set of inline cases above; delegate the rest.
 
 ## Subagent Delegation
 

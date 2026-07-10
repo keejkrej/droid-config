@@ -10,8 +10,37 @@
 #   - Prunes non-provided droids, then verifies MCP servers
 [CmdletBinding()]
 param(
-  [string]$FactoryHome = (Join-Path $HOME ".factory")
+  [string]$FactoryHome = (Join-Path $HOME ".factory"),
+  [switch]$NoElevate
 )
+
+# ---------------------------------------------------------------------------
+# Self-elevation: if not running as admin, relaunch with -Verb RunAs (UAC
+# prompt). If the user denies the UAC prompt, continue non-elevated and fall
+# back to copy mode for symlinks. Pass -NoElevate to skip this and stay
+# non-elevated (useful for unattended runs).
+# ---------------------------------------------------------------------------
+if (-not $PSBoundParameters.ContainsKey("NoElevate")) {
+  $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+  if (-not $isAdmin) {
+    $psi = [System.Diagnostics.ProcessStartInfo]::new()
+    $psi.FileName = (Get-Process -Id $PID).Path  # the current pwsh/powershell exe
+    $psi.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
+    if ($PSBoundParameters.ContainsKey("FactoryHome")) {
+      $psi.Arguments += " -FactoryHome `"$FactoryHome`""
+    }
+    $psi.Verb = "RunAs"
+    $psi.UseShellExecute = $true
+    $psi.WorkingDirectory = $PSScriptRoot
+    try {
+      $proc = [System.Diagnostics.Process]::Start($psi)
+      $proc.WaitForExit()
+      exit $proc.ExitCode
+    } catch {
+      Write-Host "!! UAC denied or unavailable ($($_.Exception.Message)); continuing non-elevated (symlinks will fall back to copies)." -ForegroundColor Yellow
+    }
+  }
+}
 
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot

@@ -126,7 +126,8 @@ delegate to `deep` once, not `fast` five times.
 
 ### Checking provider usage (manual diagnostics)
 
-`scripts/grok-usage.sh` and `scripts/cursor-usage.sh` send trivial prompts to
+`scripts/grok-usage.sh` / `scripts/grok-usage.ps1` and
+`scripts/cursor-usage.sh` / `scripts/cursor-usage.ps1` send trivial prompts to
 each provider and report whether a usage-limit error appears. They are **manual
 diagnostics only**, not something to run automatically before every delegation:
 

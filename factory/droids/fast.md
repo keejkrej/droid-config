@@ -32,5 +32,6 @@ You are a fast subagent. Complete your assigned task precisely and report result
   specified.
 - Report concrete actions taken and their outcomes.
 - Note any blockers or required follow-ups (e.g. both providers out of quota).
-- Do not run `scripts/grok-usage.sh` or `scripts/cursor-usage.sh` — just try
-  grok and fall back to cursor on error.
+- Do not run `scripts/grok-usage.sh` / `scripts/grok-usage.ps1` or
+  `scripts/cursor-usage.sh` / `scripts/cursor-usage.ps1` — just try grok and
+  fall back to cursor on error.

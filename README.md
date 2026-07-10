@@ -18,10 +18,13 @@ factory/
 mcp-bridges/
   acp-bridge/            generic ACP<->MCP bridge (Node, @modelcontextprotocol/sdk)
 scripts/
-  merge-json.mjs          non-destructive JSON merge helper used by setup.sh
-  grok-usage.sh           check whether grok still has usage quota remaining
-  cursor-usage.sh          check whether cursor-agent still has usage quota remaining
-setup.sh                  installer/linker, safe to re-run
+  merge-json.mjs          non-destructive JSON merge helper used by setup
+  grok-usage.sh           check whether grok still has usage quota remaining (Linux/macOS)
+  grok-usage.ps1          same, for Windows / PowerShell
+  cursor-usage.sh          check whether cursor-agent still has usage quota remaining (Linux/macOS)
+  cursor-usage.ps1         same, for Windows / PowerShell
+setup.sh                  installer/linker for Linux/macOS, safe to re-run
+setup.ps1                 installer/linker for Windows / PowerShell, safe to re-run
 ```
 
 ## Why a bridge?
@@ -43,16 +46,24 @@ pinned at the ACP-bridge level.
 
 ## Prerequisites
 
-- Linux with `bash`, `curl`, `node`/`npm` (18+)
-- `grok` and `cursor-agent` CLIs **already installed and logged in** (this
-  script only checks for them; see below if you still need to install them)
+- Linux with `bash`, `curl`, `node`/`npm` (18+) **or** Windows with PowerShell 5+ (pwsh 7+ recommended), `node`/`npm` (18+)
+- `grok` and `cursor-agent` CLIs **already installed and logged in** (the
+  setup script only checks for them; see below if you still need to install them)
 - An [ollama.com](https://ollama.com) account for the GLM cloud model (used
   as the default main agent model)
 
 ## Setup
 
+**Linux / macOS:**
+
 ```bash
 ./setup.sh
+```
+
+**Windows / PowerShell:**
+
+```powershell
+pwsh setup.ps1
 ```
 
 Safe to re-run. It will:
@@ -62,16 +73,20 @@ Safe to re-run. It will:
    `ollama pull` fails, run `ollama signin` once and re-run this script.
 3. Check for `grok` / `cursor-agent` on `PATH` (warns, doesn't install).
 4. `npm install` the ACP bridge dependencies.
-5. Symlink `mcp-bridges/acp-bridge`, `factory/droids/fast.md`,
+5. Link `mcp-bridges/acp-bridge`, `factory/droids/fast.md`,
    `factory/droids/deep.md`, and `factory/AGENTS.md` into `~/.factory/`,
-   backing up any pre-existing files they would replace.
+   backing up any pre-existing files they would replace. (Symlinks on Linux;
+   symlinks on Windows where possible, falling back to copies if the OS
+   refuses.)
 6. Merge `factory/mcp.json` / `factory/settings.json` into the live
    `~/.factory/mcp.json` / `~/.factory/settings.json` -- only touching the
    keys this repo owns (`mcpServers.{vision-mcp,grok-acp,cursor-acp,cursor-deep-acp}`,
    the `custom:glm-5.2:cloud-0` entry in `customModels`, and
    `sessionDefaultSettings.model`). Everything else in those files is left
    untouched.
-7. Install the `grok-usage.sh` and `cursor-usage.sh` helpers into `~/.factory/bin/`.
+7. Install the usage helper scripts into `~/.factory/bin/`: `grok-usage.sh`
+   and `cursor-usage.sh` on Linux, `grok-usage.ps1` and `cursor-usage.ps1` on
+   Windows.
 8. Remove every droid from `~/.factory/droids` other than `fast.md` and
    `deep.md` (cleans up stale files from older setups, including `worker.md`,
    `scrutiny-feature-reviewer.md`, `user-testing-flow-validator.md`,
@@ -81,12 +96,13 @@ Safe to re-run. It will:
 If `grok` / `cursor-agent` aren't installed yet:
 
 ```bash
-curl -fsSL https://x.ai/cli/install.sh | bash   # grok
-curl https://cursor.com/install -fsS | bash     # cursor-agent (agent)
+curl -fsSL https://x.ai/cli/install.sh | bash   # grok (Linux/macOS)
+curl https://cursor.com/install -fsS | bash     # cursor-agent (agent, Linux/macOS)
 ```
 
-Then authenticate (`grok` interactive login, `cursor-agent login` or `agent
-login`) before re-running `./setup.sh`.
+On Windows, install the CLIs from their respective download pages, then
+authenticate (`grok` interactive login, `cursor-agent login` or `agent
+login`) before re-running `./setup.sh` / `pwsh setup.ps1`.
 
 ## Usage
 
@@ -128,6 +144,13 @@ For manual diagnostics:
 ```bash
 bash scripts/grok-usage.sh      # exit 0 = OK, exit 1 = out of quota, exit 2 = other error
 bash scripts/cursor-usage.sh     # same exit codes
+```
+
+On Windows / PowerShell:
+
+```powershell
+pwsh scripts/grok-usage.ps1      # same exit codes
+pwsh scripts/cursor-usage.ps1    # same exit codes
 ```
 
 These are point-in-time checks and do not guarantee the provider won't run out

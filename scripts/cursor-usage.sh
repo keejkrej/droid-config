@@ -1,65 +1,109 @@
 #!/usr/bin/env bash
 # Check whether the cursor-agent CLI still has usage quota remaining.
-# Sends a trivial single-turn prompt in print mode and inspects the response
-# for known limit/quota error signals.
+# Cursor has two independent usage pools:
 #
-# Cursor uses a "slow pool" / "hard limit" model: when usage exceeds the plan
-# limit, requests are either throttled (slow pool) or rejected with a
-# hard-limit error. The error response includes fields like hit_hard_limit,
-# is_in_slow_pool, error_title, error_detail.
+#   1. First-party pool  — Cursor's own models (e.g. composer-2.5-fast).
+#      Used by the 'fast' droid's cursor fallback (composer-2.5-fast).
+#   2. API pool           — Third-party models routed through Cursor
+#      (e.g. claude-fable-5-high). Used by the 'deep' droid.
 #
-# Usage:  bash scripts/cursor-usage.sh [model]
-#   model defaults to composer-2.5-fast
+# The pools are independent: exhausting the API pool means you can't spawn
+# Deep agents, but Fast agents may still work (and vice versa).
 #
-# Exit codes:
-#   0  cursor is usable (quota remaining)
-#   1  cursor is out of quota (hard limit hit / slow pool)
-#   2  cursor-agent CLI not found / other error
+# This script tests both pools by sending a trivial prompt to each model and
+# inspecting the responses for limit/quota error signals.
+#
+# Usage:  bash scripts/cursor-usage.sh
+#
+# Exit codes (bitmask of exhausted pools):
+#   0  both pools OK
+#   1  first-party pool exhausted (fast droid cursor fallback down)
+#   2  API pool exhausted (deep droid down)
+#   3  both pools exhausted
+#   4  cursor-agent CLI not found / other error
 set -euo pipefail
-
-MODEL="${1:-composer-2.5-fast}"
 
 if ! command -v cursor-agent >/dev/null 2>&1; then
   echo "cursor-agent CLI not found on PATH. Install: curl https://cursor.com/install -fsS | bash" >&2
-  exit 2
+  exit 4
 fi
 
-# Trivial prompt that should return instantly with near-zero token cost.
-RESPONSE=$(timeout 60 cursor-agent -p "Reply with exactly: ok" --output-format json --model "$MODEL" 2>&1 || true)
+FIRST_PARTY_MODEL="composer-2.5-fast"
+API_MODEL="claude-fable-5-high"
 
-if [ -z "$RESPONSE" ]; then
-  echo "cursor-usage: no response from cursor-agent (timeout or error). It may be out of quota or not authenticated." >&2
-  exit 2
-fi
+# test_model <model> -> echoes "ok" or "out" or "error", returns 0/1/2
+test_model() {
+  local model="$1"
+  local response
+  response=$(timeout 60 cursor-agent -p "Reply with exactly: ok" --output-format json --model "$model" 2>&1 || true)
 
-# Check for error indicators in the JSON response.
-# Cursor returns is_error: true on failures, and may include slow pool / hard
-# limit / quota / rate limit signals in the text or error fields.
-if echo "$RESPONSE" | grep -qiE '"is_error"\s*:\s*true'; then
-  echo "cursor-usage: ERROR — cursor-agent returned an error response."
-  echo "$RESPONSE" | head -5 >&2
-  # Check if it's specifically a quota/limit issue
-  if echo "$RESPONSE" | grep -qiE 'slow.pool|hard.limit|quota|rate.limit|usage.limit|spend.limit|exceeded|too many'; then
-    echo "  Quota/limit issue detected. Fall back to 'grok' or 'cursor-deep'."
-    exit 1
+  if [ -z "$response" ]; then
+    echo "error"
+    return 2
   fi
-  exit 2
+
+  if echo "$response" | grep -qiE '"is_error"\s*:\s*true'; then
+    if echo "$response" | grep -qiE 'slow.pool|hard.limit|quota|rate.limit|usage.limit|spend.limit|exceeded|too many'; then
+      echo "out"
+      return 1
+    fi
+    echo "error"
+    return 2
+  fi
+
+  if echo "$response" | grep -qiE 'slow.pool|hard.limit|hit_hard_limit|is_in_slow_pool|usage.limit|spend.limit|quota.exceeded|rate.limit.exceeded|too many request'; then
+    echo "out"
+    return 1
+  fi
+
+  if echo "$response" | grep -q '"result"'; then
+    echo "ok"
+    return 0
+  fi
+
+  echo "error"
+  return 2
+}
+
+printf '\n==> Testing first-party pool (%s)\n' "$FIRST_PARTY_MODEL"
+FIRST_PARTY_STATUS=$(test_model "$FIRST_PARTY_MODEL")
+FIRST_PARTY_RC=$?
+case "$FIRST_PARTY_STATUS" in
+  ok)   printf '  OK — first-party pool responding (quota remaining).\n' ;;
+  out)  printf '  OUT OF QUOTA — first-party pool exhausted.\n' >&2
+        printf '  The fast droid cannot fall back to cursor (composer-2.5-fast).\n' >&2 ;;
+  error) printf '  ERROR — could not determine first-party pool status.\n' >&2 ;;
+esac
+
+printf '\n==> Testing API pool (%s)\n' "$API_MODEL"
+API_STATUS=$(test_model "$API_MODEL")
+API_RC=$?
+case "$API_STATUS" in
+  ok)   printf '  OK — API pool responding (quota remaining).\n' ;;
+  out)  printf '  OUT OF QUOTA — API pool exhausted.\n' >&2
+        printf '  The deep droid (claude-fable-5-high) cannot be spawned.\n' >&2 ;;
+  error) printf '  ERROR — could not determine API pool status.\n' >&2 ;;
+esac
+
+# Compute bitmask exit code.
+EXIT_CODE=0
+if [ "$FIRST_PARTY_STATUS" = "out" ]; then EXIT_CODE=$((EXIT_CODE | 1)); fi
+if [ "$API_STATUS" = "out" ]; then EXIT_CODE=$((EXIT_CODE | 2)); fi
+
+# If either pool had a non-quota error (and neither was definitively "out"), treat as error.
+if [ "$FIRST_PARTY_STATUS" = "error" ] && [ "$FIRST_PARTY_STATUS" != "out" ] && [ "$API_STATUS" != "out" ]; then
+  EXIT_CODE=4
+elif [ "$API_STATUS" = "error" ] && [ "$API_STATUS" != "out" ] && [ "$FIRST_PARTY_STATUS" != "out" ]; then
+  EXIT_CODE=4
 fi
 
-# Check for slow pool / hard limit / quota text even in non-error responses.
-if echo "$RESPONSE" | grep -qiE 'slow.pool|hard.limit|hit_hard_limit|is_in_slow_pool|usage.limit|spend.limit|quota.exceeded|rate.limit.exceeded|too many request'; then
-  echo "cursor-usage: OUT OF QUOTA — cursor-agent hit a usage limit."
-  echo "  Fall back to 'grok' or 'cursor-deep' (note: cursor-deep uses the same Cursor account)."
-  exit 1
-fi
+printf '\n==> Summary:\n'
+case $EXIT_CODE in
+  0) printf '  Both pools OK. Fast and deep droids can use cursor.\n' ;;
+  1) printf '  First-party pool exhausted. Fast droid must use grok only; deep droid unaffected.\n' ;;
+  2) printf '  API pool exhausted. Deep droid unavailable; fast droid unaffected.\n' ;;
+  3) printf '  Both pools exhausted. Neither cursor-backed droid can spawn.\n  Consider waiting for reset or using grok for fast tasks.\n' ;;
+  4) printf '  Could not determine pool status (CLI error or unauthenticated).\n' ;;
+esac
 
-# If we got a successful result with actual content, cursor is working.
-if echo "$RESPONSE" | grep -q '"result"'; then
-  echo "cursor-usage: OK — cursor-agent ($MODEL) is responding (quota remaining)."
-  exit 0
-fi
-
-# Unknown response shape — treat as error to be safe.
-echo "cursor-usage: unexpected response, could not determine quota status:" >&2
-echo "$RESPONSE" >&2
-exit 2
+exit $EXIT_CODE

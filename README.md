@@ -143,15 +143,34 @@ For manual diagnostics:
 
 ```bash
 bash scripts/grok-usage.sh      # exit 0 = OK, exit 1 = out of quota, exit 2 = other error
-bash scripts/cursor-usage.sh     # same exit codes
+bash scripts/cursor-usage.sh     # see bitmask below
 ```
 
 On Windows / PowerShell:
 
 ```powershell
 pwsh scripts/grok-usage.ps1      # same exit codes
-pwsh scripts/cursor-usage.ps1    # same exit codes
+pwsh scripts/cursor-usage.ps1    # see bitmask below
 ```
+
+Cursor has **two independent usage pools**:
+
+- **First-party pool** — Cursor's own models (e.g. `composer-2.5-fast`), used
+  by the `fast` droid's cursor fallback.
+- **API pool** — Third-party models routed through Cursor (e.g.
+  `claude-fable-5-high`), used by the `deep` droid.
+
+The pools are independent: exhausting the API pool means you can't spawn
+Deep agents, but Fast agents may still work (and vice versa). The
+`cursor-usage` script tests both pools and returns a bitmask:
+
+| Exit code | Meaning |
+|-----------|---------|
+| 0 | Both pools OK |
+| 1 | First-party pool exhausted (fast droid cursor fallback down) |
+| 2 | API pool exhausted (deep droid down) |
+| 3 | Both pools exhausted |
+| 4 | CLI error / unauthenticated |
 
 These are point-in-time checks and do not guarantee the provider won't run out
 mid-task. Neither xAI nor Cursor publishes exact reset windows. Run them

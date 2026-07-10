@@ -139,6 +139,18 @@ diagnostics only**, not something to run automatically before every delegation:
   is no need to pre-check. Run these scripts occasionally (or when you suspect
   limits are the problem) to confirm status.
 
+**Cursor has two independent usage pools**, and `cursor-usage` tests both:
+
+- **First-party pool** — Cursor's own models (e.g. `composer-2.5-fast`), used
+  by the `fast` droid's cursor fallback.
+- **API pool** — Third-party models routed through Cursor (e.g.
+  `claude-fable-5-high`), used by the `deep` droid.
+
+The pools are independent: exhausting the API pool means you can't spawn Deep
+agents, but Fast agents may still work (and vice versa). The `cursor-usage`
+script returns a bitmask exit code: 0 = both OK, 1 = first-party exhausted,
+2 = API pool exhausted, 3 = both exhausted, 4 = CLI error.
+
 ### General guidelines
 
 - **Always delegate** research, exploration, search, and verification to `fast`

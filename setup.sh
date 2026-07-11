@@ -1,13 +1,9 @@
 #!/usr/bin/env bash
 # Idempotent setup for this Factory Droid configuration:
-#   - Node.js (required by the ACP bridge)
+#   - Node.js (required by the merge script)
 #   - Ollama + the GLM-5.2 cloud model (default main agent model)
-#   - Verifies grok / cursor-agent CLIs are present (assumed pre-installed & logged in)
-#   - Installs the ACP bridge deps and links it into ~/.factory/mcp-bridges
-#   - Links custom droids (fast, deep) into ~/.factory/droids
 #   - Links factory/AGENTS.md into ~/.factory/AGENTS.md (personal subagent prefs)
 #   - Merges factory/mcp.json and factory/settings.json into the live Factory config
-#   - Links the grok-usage and cursor-usage helper scripts into ~/.factory/bin
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -18,7 +14,7 @@ ok()   { printf '\033[1;32m✓\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m!!\033[0m %s\n' "$*" >&2; }
 
 # ---------------------------------------------------------------------------
-# 1. Node.js / npm (required to run the ACP bridge and the merge script)
+# 1. Node.js / npm (required to run the merge script)
 # ---------------------------------------------------------------------------
 log "Checking Node.js / npm"
 if ! command -v node >/dev/null 2>&1 && [ -s "$HOME/.nvm/nvm.sh" ]; then
@@ -70,29 +66,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 3. grok / cursor-agent CLIs -- assumed already installed & authenticated
-# ---------------------------------------------------------------------------
-log "Checking grok / cursor-agent CLIs"
-if command -v grok >/dev/null 2>&1; then
-  ok "grok found: $(command -v grok)"
-else
-  warn "grok CLI not found on PATH. Install: curl -fsSL https://x.ai/cli/install.sh | bash"
-fi
-if command -v cursor-agent >/dev/null 2>&1; then
-  ok "cursor-agent found: $(command -v cursor-agent)"
-else
-  warn "cursor-agent CLI not found on PATH. Install: curl https://cursor.com/install -fsS | bash"
-fi
-
-# ---------------------------------------------------------------------------
-# 4. ACP bridge dependencies
-# ---------------------------------------------------------------------------
-log "Installing ACP bridge dependencies"
-(cd "$REPO_DIR/mcp-bridges/acp-bridge" && npm install --omit=dev --no-audit --no-fund)
-ok "acp-bridge dependencies installed"
-
-# ---------------------------------------------------------------------------
-# 5. Link this repo into ~/.factory
+# 3. Link this repo into ~/.factory
 # ---------------------------------------------------------------------------
 link_path() {
   local target=$1 src=$2
@@ -108,24 +82,14 @@ link_path() {
   ln -sfn "$src" "$target"
 }
 
-log "Linking mcp-bridges/acp-bridge into $FACTORY_DIR"
-link_path "$FACTORY_DIR/mcp-bridges/acp-bridge" "$REPO_DIR/mcp-bridges/acp-bridge"
-ok "linked acp-bridge"
-
-log "Linking custom droids (fast, deep) into $FACTORY_DIR/droids"
-for f in fast.md deep.md; do
-  link_path "$FACTORY_DIR/droids/$f" "$REPO_DIR/factory/droids/$f"
-done
-ok "linked: fast.md deep.md"
-
 log "Linking personal AGENTS.md into $FACTORY_DIR"
 link_path "$FACTORY_DIR/AGENTS.md" "$REPO_DIR/factory/AGENTS.md"
 ok "linked AGENTS.md"
 
 # ---------------------------------------------------------------------------
-# 6. Merge mcp.json / settings.json (non-destructive: only touches the keys
-#    this repo owns -- mcpServers.{vision-mcp,grok-acp,cursor-acp,cursor-deep-acp},
-#    the glm-5.2 entry in customModels, and sessionDefaultSettings.model)
+# 4. Merge mcp.json / settings.json (non-destructive: only touches the keys
+#    this repo owns -- mcpServers.vision-mcp, the glm-5.2 entry in
+#    customModels, and sessionDefaultSettings.model)
 # ---------------------------------------------------------------------------
 log "Merging mcp.json and settings.json into $FACTORY_DIR"
 node "$REPO_DIR/scripts/merge-json.mjs" mcp "$REPO_DIR/factory/mcp.json" "$FACTORY_DIR/mcp.json"
@@ -133,30 +97,7 @@ node "$REPO_DIR/scripts/merge-json.mjs" settings "$REPO_DIR/factory/settings.jso
 ok "config merged"
 
 # ---------------------------------------------------------------------------
-# 7. Install usage helper scripts
-# ---------------------------------------------------------------------------
-log "Installing usage helper scripts"
-link_path "$FACTORY_DIR/bin/grok-usage.sh" "$REPO_DIR/scripts/grok-usage.sh"
-link_path "$FACTORY_DIR/bin/cursor-usage.sh" "$REPO_DIR/scripts/cursor-usage.sh"
-ok "linked grok-usage.sh, cursor-usage.sh -> $FACTORY_DIR/bin/"
-
-# ---------------------------------------------------------------------------
-# 8. Remove all droid files we don't provide (keep only fast.md / deep.md)
-# ---------------------------------------------------------------------------
-log "Pruning non-provided droids from $FACTORY_DIR/droids"
-for d in "$FACTORY_DIR"/droids/*.md; do
-  [ -L "$d" ] || [ -e "$d" ] || continue
-  case "$(basename "$d")" in
-    fast.md|deep.md) ;;                       # keep
-    *)
-      rm "$d"
-      ok "removed $(basename "$d")"
-      ;;
-  esac
-done
-
-# ---------------------------------------------------------------------------
-# 9. Verify
+# 5. Verify
 # ---------------------------------------------------------------------------
 log "Verifying MCP servers"
 if command -v droid >/dev/null 2>&1; then
@@ -166,7 +107,4 @@ else
 fi
 
 log "Done."
-echo "Try:  droid exec --auto high \"Use the Task tool with subagent_type 'fast' to say hi\""
-echo "Try:  droid exec --auto high \"Use the Task tool with subagent_type 'deep' to say hi\""
-echo "Check grok quota:   bash scripts/grok-usage.sh"
-echo "Check cursor quota:  bash scripts/cursor-usage.sh"
+echo "Try:  droid exec --auto high \"Use the Task tool to delegate exploration of this repo to a subagent\""

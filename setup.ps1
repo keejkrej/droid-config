@@ -1,13 +1,9 @@
 # Idempotent setup for this Factory Droid configuration (Windows / PowerShell):
-#   - Node.js (required by the ACP bridge)
+#   - Node.js (required by the merge script)
 #   - Ollama + the GLM-5.2 cloud model (default main agent model)
-#   - Verifies grok / cursor-agent CLIs are present (assumed pre-installed & logged in)
-#   - Installs the ACP bridge deps and links it into ~/.factory/mcp-bridges
-#   - Links custom droids (fast, deep) into ~/.factory/droids
 #   - Links factory/AGENTS.md into ~/.factory/AGENTS.md (personal subagent prefs)
 #   - Merges factory/mcp.json and factory/settings.json into the live Factory config
-#   - Links the grok-usage and cursor-usage helper scripts (.ps1) into ~/.factory/bin
-#   - Prunes non-provided droids, then verifies MCP servers
+#   - Verifies MCP servers
 [CmdletBinding()]
 param(
   [string]$FactoryHome = (Join-Path $HOME ".factory"),
@@ -89,7 +85,7 @@ function Link-Path($Target, $Source) {
 }
 
 # ---------------------------------------------------------------------------
-# 1. Node.js / npm (required to run the ACP bridge and the merge script)
+# 1. Node.js / npm (required to run the merge script)
 # ---------------------------------------------------------------------------
 Log "Checking Node.js / npm"
 $node = Get-Command node -ErrorAction SilentlyContinue
@@ -149,50 +145,16 @@ try {
 }
 
 # ---------------------------------------------------------------------------
-# 3. grok / cursor-agent CLIs -- assumed already installed & authenticated
+# 3. Link personal AGENTS.md into ~/.factory
 # ---------------------------------------------------------------------------
-Log "Checking grok / cursor-agent CLIs"
-if (Get-Command grok -ErrorAction SilentlyContinue) {
-  Ok "grok found: $((Get-Command grok).Source)"
-} else {
-  Warn "grok CLI not found on PATH. Install via the xAI installer for your platform."
-}
-if (Get-Command cursor-agent -ErrorAction SilentlyContinue) {
-  Ok "cursor-agent found: $((Get-Command cursor-agent).Source)"
-} else {
-  Warn "cursor-agent CLI not found on PATH. Install from https://cursor.com/install"
-}
-
-# ---------------------------------------------------------------------------
-# 4. ACP bridge dependencies
-# ---------------------------------------------------------------------------
-Log "Installing ACP bridge dependencies"
-Push-Location (Join-Path $RepoDir "mcp-bridges\acp-bridge")
-& npm install --omit=dev --no-audit --no-fund
-Pop-Location
-Ok "acp-bridge dependencies installed"
-
-# ---------------------------------------------------------------------------
-# 5. Link this repo into ~/.factory
-# ---------------------------------------------------------------------------
-Log "Linking mcp-bridges/acp-bridge into $FactoryDir"
-Link-Path (Join-Path $FactoryDir "mcp-bridges\acp-bridge") (Join-Path $RepoDir "mcp-bridges\acp-bridge")
-Ok "linked acp-bridge"
-
-Log "Linking custom droids (fast, deep) into $FactoryDir\droids"
-foreach ($f in @("fast.md", "deep.md")) {
-  Link-Path (Join-Path $FactoryDir "droids\$f") (Join-Path $RepoDir "factory\droids\$f")
-}
-Ok "linked: fast.md deep.md"
-
 Log "Linking personal AGENTS.md into $FactoryDir"
 Link-Path (Join-Path $FactoryDir "AGENTS.md") (Join-Path $RepoDir "factory\AGENTS.md")
 Ok "linked AGENTS.md"
 
 # ---------------------------------------------------------------------------
-# 6. Merge mcp.json / settings.json (non-destructive: only touches the keys
-#    this repo owns -- mcpServers.{vision-mcp,grok-acp,cursor-acp,cursor-deep-acp},
-#    the glm-5.2 entry in customModels, and sessionDefaultSettings.model)
+# 4. Merge mcp.json / settings.json (non-destructive: only touches the keys
+#    this repo owns -- mcpServers.vision-mcp, the glm-5.2 entry in
+#    customModels, and sessionDefaultSettings.model)
 # ---------------------------------------------------------------------------
 Log "Merging mcp.json and settings.json into $FactoryDir"
 & node (Join-Path $RepoDir "scripts\merge-json.mjs") mcp (Join-Path $RepoDir "factory\mcp.json") (Join-Path $FactoryDir "mcp.json")
@@ -200,29 +162,7 @@ Log "Merging mcp.json and settings.json into $FactoryDir"
 Ok "config merged"
 
 # ---------------------------------------------------------------------------
-# 7. Install usage helper scripts (Windows .ps1 variants)
-# ---------------------------------------------------------------------------
-Log "Installing usage helper scripts"
-Link-Path (Join-Path $FactoryDir "bin\grok-usage.ps1") (Join-Path $RepoDir "scripts\grok-usage.ps1")
-Link-Path (Join-Path $FactoryDir "bin\cursor-usage.ps1") (Join-Path $RepoDir "scripts\cursor-usage.ps1")
-Ok "linked grok-usage.ps1, cursor-usage.ps1 -> $FactoryDir\bin\"
-
-# ---------------------------------------------------------------------------
-# 8. Remove all droid files we don't provide (keep only fast.md / deep.md)
-# ---------------------------------------------------------------------------
-Log "Pruning non-provided droids from $FactoryDir\droids"
-$droidsDir = Join-Path $FactoryDir "droids"
-if (Test-Path $droidsDir) {
-  Get-ChildItem -Path $droidsDir -Filter *.md | ForEach-Object {
-    if ($_.Name -notin @("fast.md", "deep.md")) {
-      Remove-Item $_.FullName -Force
-      Ok "removed $($_.Name)"
-    }
-  }
-}
-
-# ---------------------------------------------------------------------------
-# 9. Verify
+# 5. Verify
 # ---------------------------------------------------------------------------
 Log "Verifying MCP servers"
 if (Get-Command droid -ErrorAction SilentlyContinue) {
@@ -232,7 +172,4 @@ if (Get-Command droid -ErrorAction SilentlyContinue) {
 }
 
 Log "Done."
-Write-Host "Try:  droid exec --auto high `"Use the Task tool with subagent_type 'fast' to say hi`""
-Write-Host "Try:  droid exec --auto high `"Use the Task tool with subagent_type 'deep' to say hi`""
-Write-Host "Check grok quota:   pwsh scripts\grok-usage.ps1"
-Write-Host "Check cursor quota: pwsh scripts\cursor-usage.ps1"
+Write-Host "Try:  droid exec --auto high `"Use the Task tool to delegate exploration of this repo to a subagent`""

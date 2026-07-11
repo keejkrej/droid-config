@@ -38,7 +38,7 @@ if ([string]::IsNullOrWhiteSpace($response)) {
 # Also check for the SuperGrok upsell URL that accompanies it.
 if ($response -match '(?i)usage limit|grok build usage limit|supergrok\?referrer=grok-build') {
   [Console]::Error.WriteLine("grok-usage: OUT OF QUOTA - Grok Build usage limit reached.")
-  [Console]::Error.WriteLine("  Fall back to the 'cursor' (composer-2.5-fast) or 'cursor-deep' (claude-fable-5-high) subagent.")
+  [Console]::Error.WriteLine("  Fall back to the 'cursor' (composer-2.5-fast) or 'cursor-deep' (gpt-5.6-sol-high) subagent.")
   [Console]::Error.WriteLine("  Upgrade at: https://grok.com/supergrok?referrer=grok-build")
   exit 1
 }

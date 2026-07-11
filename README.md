@@ -11,7 +11,7 @@ agent CLIs (Grok Build, Cursor Agent) speaking the
 factory/
   droids/               custom droids (subagents), synced to ~/.factory/droids
     fast.md             fast subagent: grok (grok-composer-2.5-fast) with cursor fallback (composer-2.5-fast)
-    deep.md             deep subagent: cursor-agent (claude-fable-5-high) for difficult tasks
+    deep.md             deep subagent: cursor-agent (gpt-5.6-sol-high) for difficult tasks
   AGENTS.md               personal subagent-delegation prefs, synced to ~/.factory/AGENTS.md
   mcp.json               template merged into ~/.factory/mcp.json
   settings.json          template merged into ~/.factory/settings.json (customModels + default model)
@@ -41,7 +41,7 @@ tool (`prompt`). The `fast` and `deep` custom droids are thin relays
 restricted to only that tool, so calling them via the Task tool runs the
 actual external grok / cursor-agent process and returns its real response.
 Each MCP server passes a `--model` flag to its underlying CLI so the specific
-model (grok-composer-2.5-fast, composer-2.5-fast, or claude-fable-5-high) is
+model (grok-composer-2.5-fast, composer-2.5-fast, or gpt-5.6-sol-high) is
 pinned at the ACP-bridge level.
 
 ## Prerequisites
@@ -126,7 +126,7 @@ any other subagent listed by the Task tool are leftovers and must not be used.
   for research, codebase exploration, search, verification passes, and code
   review — subagents are a context-management primitive that keeps the main
   agent's context clean.
-- **deep** (claude-fable-5-high) — for difficult, high-stakes tasks where
+- **deep** (gpt-5.6-sol-high) — for difficult, high-stakes tasks where
   maximum reasoning depth is needed.
 
 For tasks with **independent, disjoint parts** (e.g. explore auth + DB + API
@@ -158,7 +158,7 @@ Cursor has **two independent usage pools**:
 - **First-party pool** — Cursor's own models (e.g. `composer-2.5-fast`), used
   by the `fast` droid's cursor fallback.
 - **API pool** — Third-party models routed through Cursor (e.g.
-  `claude-fable-5-high`), used by the `deep` droid.
+  `gpt-5.6-sol-high`), used by the `deep` droid.
 
 The pools are independent: exhausting the API pool means you can't spawn
 Deep agents, but Fast agents may still work (and vice versa). The

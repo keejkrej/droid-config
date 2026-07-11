@@ -29,7 +29,7 @@ fi
 # Also check for the SuperGrok upsell URL that accompanies it.
 if echo "$RESPONSE" | grep -qiE "usage limit|grok build usage limit|supergrok\?referrer=grok-build"; then
   echo "grok-usage: OUT OF QUOTA — Grok Build usage limit reached."
-  echo "  Fall back to the 'cursor' (composer-2.5-fast) or 'cursor-deep' (claude-fable-5-high) subagent."
+  echo "  Fall back to the 'cursor' (composer-2.5-fast) or 'cursor-deep' (gpt-5.6-sol-high) subagent."
   echo "  Upgrade at: https://grok.com/supergrok?referrer=grok-build"
   exit 1
 fi

@@ -62,10 +62,10 @@ only `fast` or `deep`.
   **composer-2.5-fast** (Cursor Agent CLI). Same fast Composer 2.5 Fast model, two
   providers. **Default for delegated work** — quick lookups, parallel exploration,
   cross-checks, anything that benefits from speed.
-- **`deep`** — delegates to **claude-fable-5-high** (Cursor Agent CLI, Fable 5 1M,
-  high reasoning, no data retention). The strongest reasoning model available. Use
-  for genuinely difficult, high-stakes tasks where maximum depth is needed and the
-  main agent or `fast` aren't enough.
+- **`deep`** — delegates to **gpt-5.6-sol-high** (Cursor Agent CLI, GPT-5.6
+  Sol 1M High). The strongest reasoning model available. Use for genuinely
+  difficult, high-stakes tasks where maximum depth is needed and the main
+  agent or `fast` aren't enough.
 
 ### When to delegate (MANDATORY -- read carefully)
 
@@ -120,7 +120,7 @@ delegate to `deep` once, not `fast` five times.
 1. **Default:** delegate to `fast` (grok first, cursor fallback — handled internally
    by the droid).
 2. **For difficult/high-stakes tasks** where depth matters more than speed: use
-   `deep` (Fable 5 High).
+   `deep` (GPT-5.6 Sol High).
 3. **For independent second opinions:** use a different subagent than the one
    already tried (e.g. `fast` first, `deep` for a deep cross-check).
 
@@ -144,7 +144,7 @@ diagnostics only**, not something to run automatically before every delegation:
 - **First-party pool** — Cursor's own models (e.g. `composer-2.5-fast`), used
   by the `fast` droid's cursor fallback.
 - **API pool** — Third-party models routed through Cursor (e.g.
-  `claude-fable-5-high`), used by the `deep` droid.
+  `gpt-5.6-sol-high`), used by the `deep` droid.
 
 The pools are independent: exhausting the API pool means you can't spawn Deep
 agents, but Fast agents may still work (and vice versa). The `cursor-usage`

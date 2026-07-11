@@ -39,9 +39,9 @@
       "args": ["$HOME/.factory/mcp-bridges/acp-bridge/index.mjs"],
       "env": {
         "ACP_COMMAND": "cursor-agent",
-        "ACP_ARGS": "[\"acp\",\"--model\",\"claude-fable-5-high\"]",
+        "ACP_ARGS": "[\"acp\",\"--model\",\"gpt-5.6-sol-high\"]",
         "ACP_AUTH_METHOD": "cursor_login",
-        "ACP_LABEL": "Cursor Agent (Fable 5 High)",
+        "ACP_LABEL": "Cursor Agent (GPT-5.6 Sol High)",
         "ACP_SERVER_NAME": "cursor-deep-acp"
       },
       "timeoutMs": 300000

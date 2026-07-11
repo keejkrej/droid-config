@@ -4,7 +4,7 @@
 #   1. First-party pool  — Cursor's own models (e.g. composer-2.5-fast).
 #      Used by the 'fast' droid's cursor fallback (composer-2.5-fast).
 #   2. API pool           — Third-party models routed through Cursor
-#      (e.g. claude-fable-5-high). Used by the 'deep' droid.
+#      (e.g. gpt-5.6-sol-high). Used by the 'deep' droid.
 #
 # The pools are independent: exhausting the API pool means you can't spawn
 # Deep agents, but Fast agents may still work (and vice versa).
@@ -33,7 +33,7 @@ if (-not $cursorAgent) {
 }
 
 $FirstPartyModel = "composer-2.5-fast"
-$ApiModel       = "claude-fable-5-high"
+$ApiModel       = "gpt-5.6-sol-high"
 
 # test_model returns "ok", "out", or "error"
 function Test-Model([string]$Model) {
@@ -76,7 +76,7 @@ $apiStatus = Test-Model $ApiModel
 switch ($apiStatus) {
   "ok"    { Write-Host "  OK - API pool responding (quota remaining)." }
   "out"   { [Console]::Error.WriteLine("  OUT OF QUOTA - API pool exhausted.")
-            [Console]::Error.WriteLine("  The deep droid (claude-fable-5-high) cannot be spawned.") }
+            [Console]::Error.WriteLine("  The deep droid (gpt-5.6-sol-high) cannot be spawned.") }
   "error" { [Console]::Error.WriteLine("  ERROR - could not determine API pool status.") }
 }
 

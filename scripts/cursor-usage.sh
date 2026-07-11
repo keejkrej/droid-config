@@ -5,7 +5,7 @@
 #   1. First-party pool  — Cursor's own models (e.g. composer-2.5-fast).
 #      Used by the 'fast' droid's cursor fallback (composer-2.5-fast).
 #   2. API pool           — Third-party models routed through Cursor
-#      (e.g. claude-fable-5-high). Used by the 'deep' droid.
+#      (e.g. gpt-5.6-sol-high). Used by the 'deep' droid.
 #
 # The pools are independent: exhausting the API pool means you can't spawn
 # Deep agents, but Fast agents may still work (and vice versa).
@@ -29,7 +29,7 @@ if ! command -v cursor-agent >/dev/null 2>&1; then
 fi
 
 FIRST_PARTY_MODEL="composer-2.5-fast"
-API_MODEL="claude-fable-5-high"
+API_MODEL="gpt-5.6-sol-high"
 
 # test_model <model> -> echoes "ok" or "out" or "error", returns 0/1/2
 test_model() {
@@ -81,7 +81,7 @@ API_RC=$?
 case "$API_STATUS" in
   ok)   printf '  OK — API pool responding (quota remaining).\n' ;;
   out)  printf '  OUT OF QUOTA — API pool exhausted.\n' >&2
-        printf '  The deep droid (claude-fable-5-high) cannot be spawned.\n' >&2 ;;
+        printf '  The deep droid (gpt-5.6-sol-high) cannot be spawned.\n' >&2 ;;
   error) printf '  ERROR — could not determine API pool status.\n' >&2 ;;
 esac
 

@@ -35,7 +35,7 @@ API_MODEL="claude-fable-5-high"
 test_model() {
   local model="$1"
   local response
-  response=$(timeout 60 cursor-agent -p "Reply with exactly: ok" --output-format json --model "$model" 2>&1 || true)
+  response=$(timeout 60 cursor-agent -p "Reply with exactly: ok" --output-format json --model "$model" --trust 2>&1 || true)
 
   if [ -z "$response" ]; then
     echo "error"

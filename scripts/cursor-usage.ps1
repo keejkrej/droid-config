@@ -37,7 +37,7 @@ $ApiModel       = "claude-fable-5-high"
 
 # test_model returns "ok", "out", or "error"
 function Test-Model([string]$Model) {
-  $arguments = @("-p", "Reply with exactly: ok", "--output-format", "json", "--model", $Model)
+  $arguments = @("-p", "Reply with exactly: ok", "--output-format", "json", "--model", $Model, "--trust")
   try {
     $response = & cursor-agent @arguments 2>&1 | Out-String
   } catch {

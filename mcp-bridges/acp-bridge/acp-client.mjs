@@ -21,10 +21,16 @@ export class AcpClient {
 
   start() {
     if (this.proc) return;
+    // On Windows, bare command names like "cursor-agent" resolve to .cmd
+    // shims (cursor-agent.cmd). Node's spawn() without shell:true cannot
+    // find .cmd/.bat shims (ENOENT), so enable shell mode on win32.
+    const isWindows = process.platform === "win32";
     this.proc = spawn(this.command, this.args, {
       cwd: this.cwd,
       env: { ...process.env, ...this.env },
       stdio: ["pipe", "pipe", "pipe"],
+      shell: isWindows,
+      windowsVerbatimArguments: isWindows,
     });
     this.proc.on("exit", (code, signal) => {
       const err = new Error(`ACP agent "${this.command}" exited (code=${code}, signal=${signal})`);
